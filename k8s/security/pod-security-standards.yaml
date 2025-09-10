@@ -1,0 +1,198 @@
+# Pod Security Standards for MSA Learning Platform
+# Kubernetes Pod Security Standards 적용
+
+---
+# Frontend 네임스페이스 - Restricted 정책
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: frontend
+  labels:
+    name: frontend
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: eks-msa-learning
+    # Pod Security Standards 라벨
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# Backend 네임스페이스 - Restricted 정책
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backend
+  labels:
+    name: backend
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: eks-msa-learning
+    # Pod Security Standards 라벨
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# Monitoring 네임스페이스 - Privileged 정책 (시스템 메트릭 수집 필요)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/part-of: eks-msa-learning
+    # Pod Security Standards 라벨
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+---
+# Security 네임스페이스 - Privileged 정책 (보안 스캔 도구 필요)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: security
+  labels:
+    name: security
+    app.kubernetes.io/name: security
+    app.kubernetes.io/part-of: eks-msa-learning
+    # Pod Security Standards 라벨
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+---
+# Chaos 네임스페이스 - Privileged 정책 (장애 주입 도구 필요)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chaos
+  labels:
+    name: chaos
+    app.kubernetes.io/name: chaos
+    app.kubernetes.io/part-of: eks-msa-learning
+    # Pod Security Standards 라벨
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+---
+# GitOps 네임스페이스 - Baseline 정책
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitops
+  labels:
+    name: gitops
+    app.kubernetes.io/name: gitops
+    app.kubernetes.io/part-of: eks-msa-learning
+    # Pod Security Standards 라벨
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/warn: baseline
+---
+# 보안 컨텍스트 예제 - Restricted 정책 준수
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secure-pod-example
+  namespace: backend
+  labels:
+    app: secure-example
+spec:
+  serviceAccountName: catalog-service-account
+  securityContext:
+    # 비특권 사용자로 실행
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    # seccomp 프로필 적용
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: app
+    image: nginx:1.25-alpine
+    securityContext:
+      # 권한 상승 방지
+      allowPrivilegeEscalation: false
+      # 읽기 전용 루트 파일시스템
+      readOnlyRootFilesystem: true
+      # 모든 capabilities 제거
+      capabilities:
+        drop:
+        - ALL
+    # 임시 볼륨 마운트 (읽기 전용 루트 파일시스템 때문에)
+    volumeMounts:
+    - name: tmp
+      mountPath: /tmp
+    - name: var-cache-nginx
+      mountPath: /var/cache/nginx
+    - name: var-run
+      mountPath: /var/run
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+  volumes:
+  - name: tmp
+    emptyDir: {}
+  - name: var-cache-nginx
+    emptyDir: {}
+  - name: var-run
+    emptyDir: {}
+---
+# PodDisruptionBudget 예제
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: frontend-pdb
+  namespace: frontend
+  labels:
+    app.kubernetes.io/name: frontend-pdb
+    app.kubernetes.io/part-of: eks-msa-learning
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: frontend-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: main-service-pdb
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: main-service-pdb
+    app.kubernetes.io/part-of: eks-msa-learning
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: main-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: catalog-service-pdb
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: catalog-service-pdb
+    app.kubernetes.io/part-of: eks-msa-learning
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: catalog-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: order-service-pdb
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: order-service-pdb
+    app.kubernetes.io/part-of: eks-msa-learning
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: order-service

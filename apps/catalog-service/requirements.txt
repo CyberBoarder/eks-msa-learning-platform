@@ -1,0 +1,45 @@
+# FastAPI and ASGI server
+fastapi==0.95.1
+uvicorn[standard]==0.21.1
+
+# Database
+sqlalchemy==2.0.10
+asyncpg==0.27.0
+alembic==1.10.3
+
+# Redis
+redis==4.5.4
+aioredis==2.0.1
+
+# HTTP client
+httpx==0.24.0
+
+# Validation and serialization
+pydantic==1.10.7
+email-validator==2.0.0
+
+# Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Configuration
+python-dotenv==1.0.0
+
+# Monitoring and logging
+prometheus-client==0.16.0
+structlog==23.1.0
+
+# Testing
+pytest==7.3.1
+pytest-asyncio==0.21.0
+pytest-cov==4.0.0
+httpx==0.24.0
+
+# Code quality
+flake8==6.0.0
+black==23.3.0
+isort==5.12.0
+
+# Development
+watchfiles==0.19.0

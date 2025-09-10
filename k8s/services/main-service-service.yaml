@@ -1,0 +1,56 @@
+# Main Service
+# API Gateway 서비스를 위한 Kubernetes Service
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: main-service
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: main-service
+    app.kubernetes.io/part-of: eks-msa-learning
+    app.kubernetes.io/component: api-gateway
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/health"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "30"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: "5"
+    service.beta.kubernetes.io/aws-load-balancer-healthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-unhealthy-threshold: "3"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 3001
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: main-service
+  sessionAffinity: None
+---
+# Main Service용 ServiceMonitor (Prometheus 메트릭 수집용)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: main-service-metrics
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: main-service-metrics
+    app.kubernetes.io/part-of: eks-msa-learning
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: main-service
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+    - backend

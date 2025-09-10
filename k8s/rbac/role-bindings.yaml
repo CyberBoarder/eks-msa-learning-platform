@@ -1,0 +1,255 @@
+# RoleBindings and ClusterRoleBindings for MSA Learning Platform
+# 역할과 사용자/서비스계정 바인딩
+
+---
+# Frontend ServiceAccount에 애플리케이션 역할 바인딩
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: frontend-service-binding
+  labels:
+    app.kubernetes.io/name: frontend-service-binding
+    app.kubernetes.io/part-of: eks-msa-learning
+subjects:
+- kind: ServiceAccount
+  name: frontend-service-account
+  namespace: frontend
+roleRef:
+  kind: ClusterRole
+  name: application-service-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Main Service에 애플리케이션 역할 바인딩
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: main-service-binding
+  labels:
+    app.kubernetes.io/name: main-service-binding
+    app.kubernetes.io/part-of: eks-msa-learning
+subjects:
+- kind: ServiceAccount
+  name: main-service-account
+  namespace: backend
+roleRef:
+  kind: ClusterRole
+  name: application-service-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Catalog Service에 애플리케이션 역할 바인딩
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: catalog-service-binding
+  labels:
+    app.kubernetes.io/name: catalog-service-binding
+    app.kubernetes.io/part-of: eks-msa-learning
+subjects:
+- kind: ServiceAccount
+  name: catalog-service-account
+  namespace: backend
+roleRef:
+  kind: ClusterRole
+  name: application-service-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Order Service에 애플리케이션 역할 바인딩
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: order-service-binding
+  labels:
+    app.kubernetes.io/name: order-service-binding
+    app.kubernetes.io/part-of: eks-msa-learning
+subjects:
+- kind: ServiceAccount
+  name: order-service-account
+  namespace: backend
+roleRef:
+  kind: ClusterRole
+  name: application-service-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Monitoring ServiceAccount에 모니터링 역할 바인딩
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: monitoring-service-binding
+  labels:
+    app.kubernetes.io/name: monitoring-service-binding
+    app.kubernetes.io/part-of: eks-msa-learning
+subjects:
+- kind: ServiceAccount
+  name: monitoring-service-account
+  namespace: monitoring
+roleRef:
+  kind: ClusterRole
+  name: monitoring-service-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Security ServiceAccount에 보안 역할 바인딩
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: security-service-binding
+  labels:
+    app.kubernetes.io/name: security-service-binding
+    app.kubernetes.io/part-of: eks-msa-learning
+subjects:
+- kind: ServiceAccount
+  name: security-service-account
+  namespace: security
+roleRef:
+  kind: ClusterRole
+  name: security-service-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Chaos ServiceAccount에 카오스 역할 바인딩
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: chaos-service-binding
+  labels:
+    app.kubernetes.io/name: chaos-service-binding
+    app.kubernetes.io/part-of: eks-msa-learning
+subjects:
+- kind: ServiceAccount
+  name: chaos-service-account
+  namespace: chaos
+roleRef:
+  kind: ClusterRole
+  name: chaos-service-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# GitOps ServiceAccount에 GitOps 역할 바인딩
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gitops-service-binding
+  labels:
+    app.kubernetes.io/name: gitops-service-binding
+    app.kubernetes.io/part-of: eks-msa-learning
+subjects:
+- kind: ServiceAccount
+  name: gitops-service-account
+  namespace: gitops
+roleRef:
+  kind: ClusterRole
+  name: gitops-service-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# 네임스페이스별 세부 권한 설정 - Frontend
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: frontend
+  name: frontend-namespace-role
+  labels:
+    app.kubernetes.io/name: frontend-namespace-role
+    app.kubernetes.io/part-of: eks-msa-learning
+rules:
+# 자신의 네임스페이스 내 리소스 관리
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: frontend-namespace-binding
+  namespace: frontend
+  labels:
+    app.kubernetes.io/name: frontend-namespace-binding
+    app.kubernetes.io/part-of: eks-msa-learning
+subjects:
+- kind: ServiceAccount
+  name: frontend-service-account
+  namespace: frontend
+roleRef:
+  kind: Role
+  name: frontend-namespace-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# 네임스페이스별 세부 권한 설정 - Backend
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: backend
+  name: backend-namespace-role
+  labels:
+    app.kubernetes.io/name: backend-namespace-role
+    app.kubernetes.io/part-of: eks-msa-learning
+rules:
+# 백엔드 서비스들의 네임스페이스 내 리소스 관리
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "statefulsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: backend-namespace-binding
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: backend-namespace-binding
+    app.kubernetes.io/part-of: eks-msa-learning
+subjects:
+- kind: ServiceAccount
+  name: main-service-account
+  namespace: backend
+- kind: ServiceAccount
+  name: catalog-service-account
+  namespace: backend
+- kind: ServiceAccount
+  name: order-service-account
+  namespace: backend
+roleRef:
+  kind: Role
+  name: backend-namespace-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# 개발자 그룹 바인딩 (예시)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: developers-binding
+  labels:
+    app.kubernetes.io/name: developers-binding
+    app.kubernetes.io/part-of: eks-msa-learning
+subjects:
+- kind: Group
+  name: eks-msa-developers
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: developer-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# 운영자 그룹 바인딩 (예시)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: operators-binding
+  labels:
+    app.kubernetes.io/name: operators-binding
+    app.kubernetes.io/part-of: eks-msa-learning
+subjects:
+- kind: Group
+  name: eks-msa-operators
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: operator-role
+  apiGroup: rbac.authorization.k8s.io

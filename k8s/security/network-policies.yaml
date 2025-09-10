@@ -1,0 +1,411 @@
+# Network Policies for MSA Learning Platform
+# Pod 간 통신 제한 및 보안 강화
+
+---
+# Frontend 네임스페이스 네트워크 정책
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-network-policy
+  namespace: frontend
+  labels:
+    app.kubernetes.io/name: frontend-network-policy
+    app.kubernetes.io/part-of: eks-msa-learning
+spec:
+  podSelector: {}  # 네임스페이스 내 모든 Pod에 적용
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # ALB에서 오는 트래픽 허용
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 3000  # React 개발 서버
+  egress:
+  # Backend 서비스로의 트래픽 허용
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: backend
+    ports:
+    - protocol: TCP
+      port: 3001  # Main Service
+  # DNS 해상도 허용
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # HTTPS 외부 통신 허용 (CDN, API 등)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Backend 네임스페이스 네트워크 정책
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-network-policy
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: backend-network-policy
+    app.kubernetes.io/part-of: eks-msa-learning
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Frontend에서 오는 트래픽 허용
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: frontend
+    ports:
+    - protocol: TCP
+      port: 3001  # Main Service
+  # 같은 네임스페이스 내 서비스 간 통신 허용
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: backend
+    ports:
+    - protocol: TCP
+      port: 8000  # Catalog Service
+    - protocol: TCP
+      port: 8080  # Order Service
+  # 모니터링에서 오는 트래픽 허용
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090  # Prometheus metrics
+  egress:
+  # 같은 네임스페이스 내 서비스 간 통신 허용
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: backend
+    ports:
+    - protocol: TCP
+      port: 8000  # Catalog Service
+    - protocol: TCP
+      port: 8080  # Order Service
+  # DNS 해상도 허용
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # 데이터베이스 연결 허용 (RDS)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 5432  # PostgreSQL
+  # Redis 연결 허용
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 6379  # Redis
+  # HTTPS 외부 통신 허용
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Main Service 전용 네트워크 정책
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: main-service-network-policy
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: main-service-network-policy
+    app.kubernetes.io/part-of: eks-msa-learning
+spec:
+  podSelector:
+    matchLabels:
+      app: main-service
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Frontend에서 오는 트래픽만 허용
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: frontend
+    ports:
+    - protocol: TCP
+      port: 3001
+  # 모니터링 트래픽 허용
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  # 다른 백엔드 서비스로의 통신 허용
+  - to:
+    - podSelector:
+        matchLabels:
+          app: catalog-service
+    ports:
+    - protocol: TCP
+      port: 8000
+  - to:
+    - podSelector:
+        matchLabels:
+          app: order-service
+    ports:
+    - protocol: TCP
+      port: 8080
+  # S3, 외부 API 통신 허용
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # DNS 허용
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# Catalog Service 전용 네트워크 정책
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: catalog-service-network-policy
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: catalog-service-network-policy
+    app.kubernetes.io/part-of: eks-msa-learning
+spec:
+  podSelector:
+    matchLabels:
+      app: catalog-service
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Main Service에서 오는 트래픽만 허용
+  - from:
+    - podSelector:
+        matchLabels:
+          app: main-service
+    ports:
+    - protocol: TCP
+      port: 8000
+  # 모니터링 트래픽 허용
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  # 데이터베이스 연결 허용
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 5432  # PostgreSQL
+  # Redis 연결 허용
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 6379  # Redis
+  # DNS 허용
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# Order Service 전용 네트워크 정책
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: order-service-network-policy
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: order-service-network-policy
+    app.kubernetes.io/part-of: eks-msa-learning
+spec:
+  podSelector:
+    matchLabels:
+      app: order-service
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Main Service에서 오는 트래픽만 허용
+  - from:
+    - podSelector:
+        matchLabels:
+          app: main-service
+    ports:
+    - protocol: TCP
+      port: 8080
+  # 모니터링 트래픽 허용
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  # 데이터베이스 연결 허용
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 5432  # PostgreSQL
+  # Redis 연결 허용
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 6379  # Redis
+  # DNS 허용
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# Monitoring 네임스페이스 네트워크 정책
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-network-policy
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: monitoring-network-policy
+    app.kubernetes.io/part-of: eks-msa-learning
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # 모든 네임스페이스에서 메트릭 수집 허용
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 3000  # Grafana
+    - protocol: TCP
+      port: 9090  # Prometheus
+    - protocol: TCP
+      port: 9093  # Alertmanager
+  egress:
+  # 모든 네임스페이스의 메트릭 엔드포인트 접근 허용
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 9090  # Prometheus metrics
+    - protocol: TCP
+      port: 8080  # Application metrics
+    - protocol: TCP
+      port: 10254 # Ingress controller metrics
+  # DNS 허용
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Slack webhook 등 외부 알림 허용
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Security 네임스페이스 네트워크 정책
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: security-network-policy
+  namespace: security
+  labels:
+    app.kubernetes.io/name: security-network-policy
+    app.kubernetes.io/part-of: eks-msa-learning
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # 모니터링에서 메트릭 수집 허용
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  # 모든 네임스페이스 스캔을 위한 접근 허용
+  - to: []
+  # DNS 허용
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # S3에 스캔 결과 업로드 허용
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Chaos 네임스페이스 네트워크 정책
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: chaos-network-policy
+  namespace: chaos
+  labels:
+    app.kubernetes.io/name: chaos-network-policy
+    app.kubernetes.io/part-of: eks-msa-learning
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # 모니터링에서 메트릭 수집 허용
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  # 장애 주입을 위한 모든 네임스페이스 접근 허용
+  - to: []
+  # DNS 허용
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# 기본 거부 정책 (선택사항 - 엄격한 보안이 필요한 경우)
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: default-deny-all
+#   namespace: backend
+# spec:
+#   podSelector: {}
+#   policyTypes:
+#   - Ingress
+#   - Egress

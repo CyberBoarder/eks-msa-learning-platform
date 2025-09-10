@@ -1,0 +1,51 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: frontend-pdb
+  namespace: frontend
+  labels:
+    app: frontend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: frontend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: main-service-pdb
+  namespace: backend
+  labels:
+    app: main-service
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: main-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: catalog-service-pdb
+  namespace: backend
+  labels:
+    app: catalog-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: catalog-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: order-service-pdb
+  namespace: backend
+  labels:
+    app: order-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: order-service

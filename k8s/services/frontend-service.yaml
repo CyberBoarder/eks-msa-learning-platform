@@ -1,0 +1,49 @@
+# Frontend Service
+# React 애플리케이션을 위한 Kubernetes Service
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: frontend
+  labels:
+    app.kubernetes.io/name: frontend-service
+    app.kubernetes.io/part-of: eks-msa-learning
+    app.kubernetes.io/component: frontend
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: frontend
+  sessionAffinity: None
+---
+# Frontend Service용 ServiceMonitor (Prometheus 메트릭 수집용)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: frontend-metrics
+  namespace: frontend
+  labels:
+    app.kubernetes.io/name: frontend-metrics
+    app.kubernetes.io/part-of: eks-msa-learning
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend-service
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+    - frontend

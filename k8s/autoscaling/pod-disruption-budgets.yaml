@@ -1,0 +1,70 @@
+# Pod Disruption Budgets
+# 각 서비스의 최소 가용성을 보장하기 위한 PDB 설정
+
+---
+# Frontend PDB
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: frontend-pdb
+  namespace: frontend
+  labels:
+    app.kubernetes.io/name: frontend-pdb
+    app.kubernetes.io/part-of: eks-msa-learning
+    app.kubernetes.io/component: frontend
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+
+---
+# Main Service PDB
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: main-service-pdb
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: main-service-pdb
+    app.kubernetes.io/part-of: eks-msa-learning
+    app.kubernetes.io/component: api-gateway
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: main-service
+
+---
+# Catalog Service PDB
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: catalog-service-pdb
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: catalog-service-pdb
+    app.kubernetes.io/part-of: eks-msa-learning
+    app.kubernetes.io/component: catalog
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: catalog-service
+
+---
+# Order Service PDB
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: order-service-pdb
+  namespace: backend
+  labels:
+    app.kubernetes.io/name: order-service-pdb
+    app.kubernetes.io/part-of: eks-msa-learning
+    app.kubernetes.io/component: order
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: order-service

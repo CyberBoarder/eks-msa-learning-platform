@@ -1,0 +1,55 @@
+# Kubernetes Namespaces for MSA Learning Platform
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: frontend
+  labels:
+    name: frontend
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: eks-msa-learning
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backend
+  labels:
+    name: backend
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: eks-msa-learning
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/part-of: eks-msa-learning
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: security
+  labels:
+    name: security
+    app.kubernetes.io/name: security
+    app.kubernetes.io/part-of: eks-msa-learning
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chaos
+  labels:
+    name: chaos
+    app.kubernetes.io/name: chaos
+    app.kubernetes.io/part-of: eks-msa-learning
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitops
+  labels:
+    name: gitops
+    app.kubernetes.io/name: gitops
+    app.kubernetes.io/part-of: eks-msa-learning

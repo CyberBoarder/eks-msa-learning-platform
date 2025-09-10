@@ -1,0 +1,126 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: main-ingress
+  namespace: frontend
+  labels:
+    app: main-ingress
+  annotations:
+    # AWS Load Balancer Controller 설정
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/load-balancer-name: eks-msa-alb
+    
+    # SSL/TLS 설정
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:ACCOUNT_ID:certificate/CERTIFICATE_ID
+    
+    # 헬스체크 설정
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '3'
+    
+    # 로드밸런서 설정
+    alb.ingress.kubernetes.io/load-balancer-attributes: |
+      idle_timeout.timeout_seconds=60,
+      routing.http2.enabled=true,
+      access_logs.s3.enabled=true,
+      access_logs.s3.bucket=eks-msa-alb-logs,
+      access_logs.s3.prefix=alb-logs
+    
+    # 보안 그룹 설정
+    alb.ingress.kubernetes.io/security-groups: sg-xxxxxxxxx
+    alb.ingress.kubernetes.io/manage-backend-security-group-rules: 'true'
+    
+    # 태그 설정
+    alb.ingress.kubernetes.io/tags: |
+      Environment=production,
+      Project=eks-msa-learning,
+      Component=ingress
+spec:
+  rules:
+  # Frontend 라우팅
+  - host: eks-msa.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
+      # API Gateway 라우팅
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: main-service
+            port:
+              number: 3001
+  # API 전용 도메인 (선택사항)
+  - host: api.eks-msa.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: main-service
+            port:
+              number: 3001
+---
+# Backend 서비스용 내부 Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend-ingress
+  namespace: backend
+  labels:
+    app: backend-ingress
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/load-balancer-name: eks-msa-internal-alb
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+    alb.ingress.kubernetes.io/tags: |
+      Environment=production,
+      Project=eks-msa-learning,
+      Component=internal-ingress
+spec:
+  rules:
+  - host: internal.eks-msa.local
+    http:
+      paths:
+      # Catalog Service 직접 접근 (내부용)
+      - path: /catalog
+        pathType: Prefix
+        backend:
+          service:
+            name: catalog-service
+            port:
+              number: 8000
+      # Order Service 직접 접근 (내부용)
+      - path: /orders
+        pathType: Prefix
+        backend:
+          service:
+            name: order-service
+            port:
+              number: 8080
+      # Main Service 내부 접근
+      - path: /main
+        pathType: Prefix
+        backend:
+          service:
+            name: main-service
+            port:
+              number: 3001

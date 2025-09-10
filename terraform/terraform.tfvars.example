@@ -1,0 +1,34 @@
+# Example Terraform variables file
+# Copy this file to terraform.tfvars and modify as needed
+
+# AWS 설정
+aws_region = "ap-northeast-1"  # 도쿄 리전
+
+# 프로젝트 설정
+project_name = "eks-msa-learning"
+environment  = "dev"
+
+# VPC 설정
+vpc_cidr             = "10.0.0.0/16"
+availability_zones   = ["ap-northeast-1a", "ap-northeast-1c", "ap-northeast-1d"]
+private_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+public_subnet_cidrs  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+
+# EKS 설정
+cluster_version = "1.28"
+
+# RDS 설정
+db_instance_class = "db.t3.micro"
+db_name          = "msalearning"
+db_username      = "dbadmin"
+
+# ElastiCache 설정
+redis_node_type = "cache.t3.micro"
+
+# ECR 리포지토리
+ecr_repositories = [
+  "frontend-service",
+  "main-service",
+  "catalog-service", 
+  "order-service"
+]

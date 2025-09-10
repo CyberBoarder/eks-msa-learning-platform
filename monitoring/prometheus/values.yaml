@@ -1,0 +1,142 @@
+# Prometheus Helm Chart Values for EKS MSA Learning Platform
+
+# Prometheus Server 설정
+prometheus:
+  prometheusSpec:
+    # 스토리지 설정
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 50Gi
+    
+    # 리소스 설정
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "1000m"
+      limits:
+        memory: "4Gi"
+        cpu: "2000m"
+    
+    # 데이터 보존 기간
+    retention: 15d
+    retentionSize: 45GB
+    
+    # 서비스 모니터 설정
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    
+    # 추가 스크랩 설정
+    additionalScrapeConfigs:
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+
+# Grafana 설정
+grafana:
+  enabled: true
+  
+  # 관리자 비밀번호 (실제 운영시에는 Secret으로 관리)
+  adminPassword: "admin123!"
+  
+  # 퍼시스턴트 볼륨 설정
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    size: 10Gi
+  
+  # 리소스 설정
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  
+  # 서비스 설정
+  service:
+    type: ClusterIP
+    port: 80
+  
+  # 대시보드 프로바이더 설정
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+  
+  # 기본 대시보드 설정
+  dashboards:
+    default:
+      kubernetes-cluster:
+        gnetId: 7249
+        revision: 1
+        datasource: Prometheus
+      kubernetes-pods:
+        gnetId: 6417
+        revision: 1
+        datasource: Prometheus
+
+# Alertmanager 설정
+alertmanager:
+  alertmanagerSpec:
+    # 스토리지 설정
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+    
+    # 리소스 설정
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "200m"
+
+# Node Exporter 설정
+nodeExporter:
+  enabled: true
+
+# kube-state-metrics 설정
+kubeStateMetrics:
+  enabled: true
+
+# Prometheus Operator 설정
+prometheusOperator:
+  enabled: true
+  
+  # 리소스 설정
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"

@@ -1,0 +1,198 @@
+# ClusterRoles for MSA Learning Platform
+# 클러스터 수준 권한 정의
+
+---
+# 애플리케이션 서비스용 기본 ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: application-service-role
+  labels:
+    app.kubernetes.io/name: application-service-role
+    app.kubernetes.io/part-of: eks-msa-learning
+rules:
+# ConfigMap 및 Secret 읽기 권한
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+# Service 및 Endpoint 읽기 권한 (서비스 디스커버리용)
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+# Pod 정보 읽기 권한 (헬스체크용)
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+# Node 정보 읽기 권한 (메트릭용)
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+---
+# 모니터링 서비스용 ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-service-role
+  labels:
+    app.kubernetes.io/name: monitoring-service-role
+    app.kubernetes.io/part-of: eks-msa-learning
+rules:
+# 모든 리소스 읽기 권한 (메트릭 수집용)
+- apiGroups: [""]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["extensions"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["policy"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+# 메트릭 관련 리소스
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list"]
+# 커스텀 리소스 (Prometheus Operator 등)
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+# 보안 서비스용 ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: security-service-role
+  labels:
+    app.kubernetes.io/name: security-service-role
+    app.kubernetes.io/part-of: eks-msa-learning
+rules:
+# 보안 스캔을 위한 읽기 권한
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets", "serviceaccounts"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies", "ingresses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["policy"]
+  resources: ["podsecuritypolicies", "poddisruptionbudgets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+  verbs: ["get", "list", "watch"]
+# 보안 이벤트 생성 권한
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+# Chaos Engineering용 ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: chaos-service-role
+  labels:
+    app.kubernetes.io/name: chaos-service-role
+    app.kubernetes.io/part-of: eks-msa-learning
+rules:
+# Pod 관리 권한 (장애 주입용)
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "delete", "create", "update", "patch"]
+# 서비스 및 엔드포인트 관리
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+# 네트워크 정책 관리 (네트워크 장애용)
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Chaos Mesh 커스텀 리소스
+- apiGroups: ["chaos-mesh.org"]
+  resources: ["*"]
+  verbs: ["*"]
+# 이벤트 생성 권한
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+# GitOps용 ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gitops-service-role
+  labels:
+    app.kubernetes.io/name: gitops-service-role
+    app.kubernetes.io/part-of: eks-msa-learning
+rules:
+# 애플리케이션 배포를 위한 전체 권한
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+# 클러스터 수준 리소스 관리
+- nonResourceURLs: ["*"]
+  verbs: ["*"]
+---
+# 개발자용 제한된 ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: developer-role
+  labels:
+    app.kubernetes.io/name: developer-role
+    app.kubernetes.io/part-of: eks-msa-learning
+rules:
+# 기본 리소스 읽기 권한
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch"]
+# 애플리케이션 리소스 읽기 권한
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+# 로그 및 메트릭 접근
+- apiGroups: [""]
+  resources: ["pods/log", "pods/status"]
+  verbs: ["get", "list"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+---
+# 운영자용 ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: operator-role
+  labels:
+    app.kubernetes.io/name: operator-role
+    app.kubernetes.io/part-of: eks-msa-learning
+rules:
+# 대부분의 리소스에 대한 읽기/쓰기 권한
+- apiGroups: [""]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["apps"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["extensions"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["policy"]
+  resources: ["*"]
+  verbs: ["*"]
+# 클러스터 수준 리소스는 읽기만 허용
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
